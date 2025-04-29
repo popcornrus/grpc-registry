@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  # Extension server service
+  extension-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: my-extension-server:latest
+    container_name: my-extension-server
+    ports:
+      - "53000:53000"
+    environment:
+      - LOG_LEVEL=info
+      - AUTO_REGISTER=true
+      - PROXY_ADDR=proxy-manager:50051
+      - EXTENSION_ID=my-extension-server
+    volumes:
+      - extension-data:/app/data
+    networks:
+      - extension-network
+    restart: unless-stopped
+
+# Define external network for connecting to the proxy manager
+# This assumes the proxy manager is running on a network called grpc-network
+networks:
+  extension-network:
+    name: grpc-network
+    external: true
+
+# Volume for persistent data
+volumes:
+  extension-data:
+    driver: local

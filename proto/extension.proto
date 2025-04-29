@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package extension;
+
+option go_package = "grpc-registry/proto/extension";
+
+// ExtensionService defines an example gRPC service for an extension
+service ExtensionService {
+  // Track represents a method to track user behavior
+  rpc Track(TrackRequest) returns (TrackResponse);
+  
+  // GetData retrieves tracked data
+  rpc GetData(GetDataRequest) returns (GetDataResponse);
+}
+
+// TrackRequest represents a request to track user behavior
+message TrackRequest {
+  // User ID
+  string user_id = 1;
+  
+  // Tracking data (e.g., serialized rrweb events)
+  bytes data = 2;
+}
+
+// TrackResponse represents a response to a TrackRequest
+message TrackResponse {
+  // Success status
+  bool success = 1;
+  
+  // Error message (if any)
+  string error = 2;
+  
+  // ID of the tracking session
+  string session_id = 3;
+}
+
+// GetDataRequest represents a request to retrieve tracked data
+message GetDataRequest {
+  // User ID
+  string user_id = 1;
+  
+  // Optional session ID to filter by
+  string session_id = 2;
+}
+
+// GetDataResponse represents a response to a GetDataRequest
+message GetDataResponse {
+  // Success status
+  bool success = 1;
+  
+  // Error message (if any)
+  string error = 2;
+  
+  // File location where data is stored
+  string file_location = 3;
+  
+  // Optional: serialized data if not stored in a file
+  bytes data = 4;
+}

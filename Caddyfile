@@ -1,0 +1,50 @@
+# Example Caddyfile for routing traffic to the gRPC proxy manager and extensions
+# This extends the provided configuration that routes /grpc/* to go-app:53000
+
+# Base domain configuration
+{
+    # Global options
+    debug
+    log {
+        output stdout
+        format json
+    }
+}
+
+# Main application domain
+your-domain.com {
+    # Route gRPC requests for extensions to go-app:53000 (existing route)
+    route /grpc/* {
+        uri strip_prefix /grpc
+        reverse_proxy go-app:53000 {
+            transport http {
+                versions h2c
+            }
+        }
+    }
+
+    # Add a new route for the proxy manager's gRPC server
+    route /proxy/* {
+        uri strip_prefix /proxy
+        reverse_proxy proxy-manager:50051 {
+            transport http {
+                versions h2c
+            }
+        }
+    }
+
+    # Example of using gRPC with TLS (commented out)
+    # route /proxy-tls/* {
+    #     uri strip_prefix /proxy-tls
+    #     reverse_proxy proxy-manager:50051 {
+    #         transport http {
+    #             versions h2
+    #         }
+    #     }
+    # }
+
+    # Static content and other routes
+    handle_errors {
+        respond "{http.error.status_code} {http.error.status_text}"
+    }
+}

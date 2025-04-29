@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package extension;
+
+option go_package = "my-extension-server/proto/extension";
+
+// ExtensionService provides functionality for tracking and retrieving user behavior data
+service ExtensionService {
+  // Track records user behavior data
+  rpc Track(TrackRequest) returns (TrackResponse);
+  
+  // GetData retrieves previously recorded user behavior data
+  rpc GetData(GetDataRequest) returns (GetDataResponse);
+  
+  // Healthcheck provides a simple health check endpoint
+  rpc Healthcheck(HealthcheckRequest) returns (HealthcheckResponse);
+}
+
+// TrackRequest contains data for tracking user behavior
+message TrackRequest {
+  // User ID for the tracked user
+  string user_id = 1;
+  
+  // Binary data containing tracking information
+  bytes data = 2;
+  
+  // Optional metadata as key-value pairs
+  map<string, string> metadata = 3;
+}
+
+// TrackResponse contains the result of a track request
+message TrackResponse {
+  // Whether the operation was successful
+  bool success = 1;
+  
+  // Error message if not successful
+  string error = 2;
+  
+  // Session ID for retrieving this data later
+  string session_id = 3;
+}
+
+// GetDataRequest contains parameters for retrieving user behavior data
+message GetDataRequest {
+  // Session ID to retrieve
+  string session_id = 1;
+}
+
+// GetDataResponse contains user behavior data
+message GetDataResponse {
+  // Whether the operation was successful
+  bool success = 1;
+  
+  // Error message if not successful
+  string error = 2;
+  
+  // Binary data containing the requested information
+  bytes data = 3;
+}
+
+// HealthcheckRequest is an empty request for the healthcheck
+message HealthcheckRequest {}
+
+// HealthcheckResponse contains health status
+message HealthcheckResponse {
+  // Status message (e.g., "OK", "WARNING", "ERROR")
+  string status = 1;
+  
+  // Version information
+  string version = 2;
+}

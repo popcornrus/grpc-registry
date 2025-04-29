@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+package proxy;
+
+option go_package = "grpc-registry/proto/proxy";
+
+// ProxyService defines the gRPC service for the proxy manager
+service ProxyService {
+  // RegisterServer registers a new gRPC server
+  rpc RegisterServer(RegisterServerRequest) returns (RegisterServerResponse);
+  
+  // RemoveServer removes a registered gRPC server
+  rpc RemoveServer(RemoveServerRequest) returns (RemoveServerResponse);
+  
+  // ListServers lists all registered gRPC servers
+  rpc ListServers(ListServersRequest) returns (ListServersResponse);
+  
+  // SendRequest sends a request to a specific gRPC server
+  rpc SendRequest(ProxyRequest) returns (ProxyResponse);
+}
+
+// RegisterServerRequest represents a request to register a new gRPC server
+message RegisterServerRequest {
+  // ID of the server to register
+  string server_id = 1;
+  
+  // Address of the server to register (e.g., "localhost:53000")
+  string address = 2;
+  
+  // Whether to use TLS for the connection
+  bool use_tls = 3;
+  
+  // Optional TLS certificate file path
+  string tls_cert_file = 4;
+  
+  // Connection timeout in seconds
+  int32 timeout_seconds = 5;
+  
+  // Max retry attempts
+  int32 max_retries = 6;
+}
+
+// RegisterServerResponse represents a response to a RegisterServerRequest
+message RegisterServerResponse {
+  // Success status
+  bool success = 1;
+  
+  // Error message (if any)
+  string error = 2;
+}
+
+// RemoveServerRequest represents a request to remove a registered gRPC server
+message RemoveServerRequest {
+  // ID of the server to remove
+  string server_id = 1;
+}
+
+// RemoveServerResponse represents a response to a RemoveServerRequest
+message RemoveServerResponse {
+  // Success status
+  bool success = 1;
+  
+  // Error message (if any)
+  string error = 2;
+}
+
+// ListServersRequest represents a request to list all registered gRPC servers
+message ListServersRequest {}
+
+// ListServersResponse represents a response to a ListServersRequest
+message ListServersResponse {
+  // List of registered server IDs
+  repeated string server_ids = 1;
+}
+
+// ProxyRequest represents a request to be forwarded to a specific gRPC server
+message ProxyRequest {
+  // ID of the target server
+  string server_id = 1;
+  
+  // Service name to call
+  string service = 2;
+  
+  // Method name to call
+  string method = 3;
+  
+  // Request data (serialized protobuf message)
+  bytes data = 4;
+}
+
+// ProxyResponse represents a response from a forwarded request
+message ProxyResponse {
+  // Success status
+  bool success = 1;
+  
+  // Error message (if any)
+  string error = 2;
+  
+  // Response data (serialized protobuf message)
+  bytes data = 3;
+}
