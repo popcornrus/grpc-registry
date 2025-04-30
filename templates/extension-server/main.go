@@ -16,9 +16,7 @@ import (
 
 	"my-extension-server/internal/config"
 	"my-extension-server/internal/service"
-	extensionpb "my-extension-server/proto/extension"
-
-	proxypb "github.com/popcornrus/grpc-registry/proto/proxy"
+	pb "my-extension-server/proto/extension"
 )
 
 var (
@@ -40,7 +38,7 @@ func registerWithProxyManager() error {
 	defer conn.Close()
 
 	// Create a proxy service client
-	proxyClient := proxypb.NewProxyServiceClient(conn)
+	proxyClient := pb.NewProxyServiceClient(conn)
 
 	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.RegistrationTimeoutSeconds)*time.Second)
@@ -55,7 +53,7 @@ func registerWithProxyManager() error {
 	logger.Infof("Registering as %s with address %s", cfg.ExtensionID, registerAddr)
 
 	// Register the extension server
-	resp, err := proxyClient.RegisterServer(ctx, &proxypb.RegisterServerRequest{
+	resp, err := proxyClient.RegisterServer(ctx, &pb.RegisterServerRequest{
 		ServerId:       cfg.ExtensionID,
 		Address:        registerAddr,
 		UseTls:         cfg.UseTLS,
@@ -119,7 +117,7 @@ func main() {
 
 	// Create the extension service implementation
 	extensionService := service.NewExtensionService(logger, cfg)
-	extensionpb.RegisterExtensionServiceServer(grpcServer, extensionService)
+	pb.RegisterExtensionServiceServer(grpcServer, extensionService)
 
 	// Enable reflection for debugging
 	reflection.Register(grpcServer)

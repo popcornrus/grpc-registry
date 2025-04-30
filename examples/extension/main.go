@@ -11,13 +11,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/popcornrus/grpc-registry/proto/pb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
-
-	extensionpb "github.com/popcornrus/grpc-registry/proto/extension"
-	proxypb "github.com/popcornrus/grpc-registry/proto/proxy"
 )
 
 var (
@@ -31,13 +29,13 @@ var (
 
 // extensionServer implements the ExtensionService
 type extensionServer struct {
-	extensionpb.UnimplementedExtensionServiceServer
+	pb.UnimplementedExtensionServiceServer
 	logger  *logrus.Logger
 	dataDir string
 }
 
 // Track implements the Track method
-func (s *extensionServer) Track(ctx context.Context, req *extensionpb.TrackRequest) (*extensionpb.TrackResponse, error) {
+func (s *extensionServer) Track(ctx context.Context, req *pb.TrackRequest) (*pb.TrackResponse, error) {
 	s.logger.Infof("Received Track request for user %s", req.UserId)
 
 	// Create a session ID based on time
@@ -46,7 +44,7 @@ func (s *extensionServer) Track(ctx context.Context, req *extensionpb.TrackReque
 	// Ensure data directory exists
 	if err := os.MkdirAll(s.dataDir, 0755); err != nil {
 		s.logger.Errorf("Failed to create data directory: %v", err)
-		return &extensionpb.TrackResponse{
+		return &pb.TrackResponse{
 			Success: false,
 			Error:   fmt.Sprintf("Failed to create data directory: %v", err),
 		}, nil
@@ -57,7 +55,7 @@ func (s *extensionServer) Track(ctx context.Context, req *extensionpb.TrackReque
 	file, err := os.Create(filePath)
 	if err != nil {
 		s.logger.Errorf("Failed to create file: %v", err)
-		return &extensionpb.TrackResponse{
+		return &pb.TrackResponse{
 			Success: false,
 			Error:   fmt.Sprintf("Failed to create file: %v", err),
 		}, nil
@@ -67,7 +65,7 @@ func (s *extensionServer) Track(ctx context.Context, req *extensionpb.TrackReque
 	// Write the tracking data to the file
 	if _, err := file.Write(req.Data); err != nil {
 		s.logger.Errorf("Failed to write data: %v", err)
-		return &extensionpb.TrackResponse{
+		return &pb.TrackResponse{
 			Success: false,
 			Error:   fmt.Sprintf("Failed to write data: %v", err),
 		}, nil
@@ -75,14 +73,14 @@ func (s *extensionServer) Track(ctx context.Context, req *extensionpb.TrackReque
 
 	s.logger.Infof("Tracking data saved to %s", filePath)
 
-	return &extensionpb.TrackResponse{
+	return &pb.TrackResponse{
 		Success:   true,
 		SessionId: sessionID,
 	}, nil
 }
 
 // GetData implements the GetData method
-func (s *extensionServer) GetData(ctx context.Context, req *extensionpb.GetDataRequest) (*extensionpb.GetDataResponse, error) {
+func (s *extensionServer) GetData(ctx context.Context, req *pb.GetDataRequest) (*pb.GetDataResponse, error) {
 	s.logger.Infof("Received GetData request for user %s, session %s", req.UserId, req.SessionId)
 
 	// If session ID is provided, get data for that session
@@ -92,7 +90,7 @@ func (s *extensionServer) GetData(ctx context.Context, req *extensionpb.GetDataR
 		// Check if file exists
 		if _, err := os.Stat(filePath); os.IsNotExist(err) {
 			s.logger.Errorf("File not found: %s", filePath)
-			return &extensionpb.GetDataResponse{
+			return &pb.GetDataResponse{
 				Success: false,
 				Error:   fmt.Sprintf("Session data not found: %s", req.SessionId),
 			}, nil
@@ -102,13 +100,13 @@ func (s *extensionServer) GetData(ctx context.Context, req *extensionpb.GetDataR
 		data, err := os.ReadFile(filePath)
 		if err != nil {
 			s.logger.Errorf("Failed to read file: %v", err)
-			return &extensionpb.GetDataResponse{
+			return &pb.GetDataResponse{
 				Success: false,
 				Error:   fmt.Sprintf("Failed to read file: %v", err),
 			}, nil
 		}
 
-		return &extensionpb.GetDataResponse{
+		return &pb.GetDataResponse{
 			Success:      true,
 			FileLocation: filePath,
 			Data:         data,
@@ -119,7 +117,7 @@ func (s *extensionServer) GetData(ctx context.Context, req *extensionpb.GetDataR
 	// In a real implementation, you would scan the directory for matching files
 	// and potentially return a list or the latest one
 
-	return &extensionpb.GetDataResponse{
+	return &pb.GetDataResponse{
 		Success: false,
 		Error:   "Session ID is required",
 	}, nil
@@ -135,14 +133,14 @@ func registerWithProxyManager(logger *logrus.Logger, address string) error {
 	defer conn.Close()
 
 	// Create a proxy service client
-	proxyClient := proxypb.NewProxyServiceClient(conn)
+	proxyClient := pb.NewProxyServiceClient(conn)
 
 	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	// Register the extension server
-	resp, err := proxyClient.RegisterServer(ctx, &proxypb.RegisterServerRequest{
+	resp, err := proxyClient.RegisterServer(ctx, &pb.RegisterServerRequest{
 		ServerId:       *extensionID,
 		Address:        address,
 		UseTls:         false,
@@ -201,7 +199,7 @@ func main() {
 		logger:  logger,
 		dataDir: *dataDir,
 	}
-	extensionpb.RegisterExtensionServiceServer(server, extensionService)
+	pb.RegisterExtensionServiceServer(server, extensionService)
 
 	// Enable reflection for debugging
 	reflection.Register(server)

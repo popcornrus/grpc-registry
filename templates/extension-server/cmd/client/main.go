@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	extensionpb "my-extension-server/proto/extension"
+	pb "my-extension-server/proto/extension"
 )
 
 var (
@@ -32,7 +32,7 @@ func main() {
 	defer conn.Close()
 
 	// Create an extension service client
-	client := extensionpb.NewExtensionServiceClient(conn)
+	client := pb.NewExtensionServiceClient(conn)
 
 	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -42,7 +42,7 @@ func main() {
 	switch *action {
 	case "track":
 		// Send a tracking request
-		resp, err := client.Track(ctx, &extensionpb.TrackRequest{
+		resp, err := client.Track(ctx, &pb.TrackRequest{
 			UserId: *userId,
 			Data:   []byte(*data),
 		})
@@ -64,7 +64,7 @@ func main() {
 		}
 
 		// Send a get data request
-		resp, err := client.GetData(ctx, &extensionpb.GetDataRequest{
+		resp, err := client.GetData(ctx, &pb.GetDataRequest{
 			SessionId: *sessionId,
 		})
 		if err != nil {
@@ -80,7 +80,7 @@ func main() {
 
 	case "health":
 		// Send a healthcheck request
-		resp, err := client.Healthcheck(ctx, &extensionpb.HealthcheckRequest{})
+		resp, err := client.Healthcheck(ctx, &pb.HealthcheckRequest{})
 		if err != nil {
 			log.Fatalf("Healthcheck request failed: %v", err)
 		}

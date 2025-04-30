@@ -159,10 +159,10 @@ if err != nil {
 }
 defer conn.Close()
 
-client := proxypb.NewProxyServiceClient(conn)
+client := pb.NewProxyServiceClient(conn)
 
 // Register a server
-resp, err := client.RegisterServer(context.Background(), &proxypb.RegisterServerRequest{
+resp, err := client.RegisterServer(context.Background(), &pb.RegisterServerRequest{
     ServerId:       "extension1",
     Address:        "localhost:53000",
     UseTls:         false,
@@ -181,7 +181,7 @@ if !resp.Success {
 
 ```go
 // Create a request
-req := &extensionpb.TrackRequest{
+req := &pb.TrackRequest{
     UserId: "user123",
     Data:   []byte("Example tracking data"),
 }
@@ -193,7 +193,7 @@ if err != nil {
 }
 
 // Send the request through the proxy
-proxyReq := &proxypb.ProxyRequest{
+proxyReq := &pb.ProxyRequest{
     ServerId: "extension1",
     Service:  "extension.ExtensionService",
     Method:   "Track",
@@ -210,7 +210,7 @@ if !proxyResp.Success {
 }
 
 // Deserialize the response
-trackResp := &extensionpb.TrackResponse{}
+trackResp := &pb.TrackResponse{}
 if err := trackResp.Unmarshal(proxyResp.Data); err != nil {
     log.Fatalf("Failed to deserialize response: %v", err)
 }

@@ -11,8 +11,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/proto"
 
-	extensionpb "github.com/popcornrus/grpc-registry/proto/extension"
-	proxypb "github.com/popcornrus/grpc-registry/proto/proxy"
+	"github.com/popcornrus/grpc-registry/proto/pb"
 )
 
 var (
@@ -34,7 +33,7 @@ func main() {
 	defer conn.Close()
 
 	// Create a proxy service client
-	proxyClient := proxypb.NewProxyServiceClient(conn)
+	proxyClient := pb.NewProxyServiceClient(conn)
 
 	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -44,7 +43,7 @@ func main() {
 	switch *action {
 	case "register":
 		// Register the extension server
-		resp, err := proxyClient.RegisterServer(ctx, &proxypb.RegisterServerRequest{
+		resp, err := proxyClient.RegisterServer(ctx, &pb.RegisterServerRequest{
 			ServerId:       *extensionID,
 			Address:        *extensionAddr,
 			UseTls:         false,
@@ -61,7 +60,7 @@ func main() {
 
 	case "list":
 		// List registered servers
-		resp, err := proxyClient.ListServers(ctx, &proxypb.ListServersRequest{})
+		resp, err := proxyClient.ListServers(ctx, &pb.ListServersRequest{})
 		if err != nil {
 			log.Fatalf("Failed to list servers: %v", err)
 		}
@@ -69,34 +68,34 @@ func main() {
 		for _, id := range resp.ServerIds {
 			fmt.Printf("- %s\n", id)
 		}
-		
+
 	case "details":
 		// Get server details
 		serverID := *extensionID
 		if flag.NArg() > 0 {
 			serverID = flag.Arg(0)
 		}
-		
+
 		// If no server ID specified, get details for all servers
-		detailsResp, err := proxyClient.GetServerDetails(ctx, &proxypb.ServerDetailsRequest{
+		detailsResp, err := proxyClient.GetServerDetails(ctx, &pb.ServerDetailsRequest{
 			ServerId: serverID,
 		})
 		if err != nil {
 			log.Fatalf("Failed to get server details: %v", err)
 		}
-		
+
 		if len(detailsResp.Servers) == 0 {
 			fmt.Println("No servers found")
 			return
 		}
-		
+
 		// Display server details
 		fmt.Println("Server Details:")
 		for _, server := range detailsResp.Servers {
 			fmt.Printf("\nServer ID: %s\n", server.ServerId)
 			fmt.Printf("  Address:   %s\n", server.Address)
 			fmt.Printf("  Connected: %v\n", server.Connected)
-			
+
 			if len(server.Routes) == 0 {
 				fmt.Println("  Routes:    None discovered yet")
 			} else {
@@ -109,7 +108,7 @@ func main() {
 
 	case "track":
 		// Send a track request to the extension via the proxy
-		trackReq := &extensionpb.TrackRequest{
+		trackReq := &pb.TrackRequest{
 			UserId: *userID,
 			Data:   []byte("Example tracking data for user behavior"),
 		}
@@ -121,7 +120,7 @@ func main() {
 		}
 
 		// Send the request to the proxy
-		proxyReq := &proxypb.ProxyRequest{
+		proxyReq := &pb.ProxyRequest{
 			ServerId: *extensionID,
 			Service:  "extension.ExtensionService",
 			Method:   "Track",
@@ -138,7 +137,7 @@ func main() {
 		}
 
 		// Deserialize the response
-		trackResp := &extensionpb.TrackResponse{}
+		trackResp := &pb.TrackResponse{}
 		if err := proto.Unmarshal(proxyResp.Data, trackResp); err != nil {
 			log.Fatalf("Failed to deserialize response: %v", err)
 		}
@@ -147,7 +146,7 @@ func main() {
 
 	case "get-data":
 		// Send a get-data request to the extension via the proxy
-		dataReq := &extensionpb.GetDataRequest{
+		dataReq := &pb.GetDataRequest{
 			UserId:    *userID,
 			SessionId: flag.Arg(0), // Get session ID from the first non-flag argument
 		}
@@ -159,7 +158,7 @@ func main() {
 		}
 
 		// Send the request to the proxy
-		proxyReq := &proxypb.ProxyRequest{
+		proxyReq := &pb.ProxyRequest{
 			ServerId: *extensionID,
 			Service:  "extension.ExtensionService",
 			Method:   "GetData",
@@ -176,7 +175,7 @@ func main() {
 		}
 
 		// Deserialize the response
-		dataResp := &extensionpb.GetDataResponse{}
+		dataResp := &pb.GetDataResponse{}
 		if err := proto.Unmarshal(proxyResp.Data, dataResp); err != nil {
 			log.Fatalf("Failed to deserialize response: %v", err)
 		}

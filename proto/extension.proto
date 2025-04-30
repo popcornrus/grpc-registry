@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package extension;
 
-option go_package = "github.com/popcornrus/grpc-registry/proto/extension";
+option go_package = "./pb;pb";
 
 // ExtensionService defines an example gRPC service for an extension
 service ExtensionService {

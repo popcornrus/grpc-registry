@@ -4,7 +4,7 @@
 // - protoc             v6.30.2
 // source: proxy.proto
 
-package proxy
+package pb
 
 import (
 	context "context"
@@ -24,6 +24,8 @@ const _ = grpc.SupportPackageIsVersion7
 type ProxyServiceClient interface {
 	// RegisterServer registers a new gRPC server
 	RegisterServer(ctx context.Context, in *RegisterServerRequest, opts ...grpc.CallOption) (*RegisterServerResponse, error)
+	// RegisterRoute registers available routes/methods for a specific server
+	RegisterRoute(ctx context.Context, in *RegisterRouteRequest, opts ...grpc.CallOption) (*RegisterRouteResponse, error)
 	// RemoveServer removes a registered gRPC server
 	RemoveServer(ctx context.Context, in *RemoveServerRequest, opts ...grpc.CallOption) (*RemoveServerResponse, error)
 	// ListServers lists all registered gRPC servers
@@ -45,6 +47,15 @@ func NewProxyServiceClient(cc grpc.ClientConnInterface) ProxyServiceClient {
 func (c *proxyServiceClient) RegisterServer(ctx context.Context, in *RegisterServerRequest, opts ...grpc.CallOption) (*RegisterServerResponse, error) {
 	out := new(RegisterServerResponse)
 	err := c.cc.Invoke(ctx, "/proxy.ProxyService/RegisterServer", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxyServiceClient) RegisterRoute(ctx context.Context, in *RegisterRouteRequest, opts ...grpc.CallOption) (*RegisterRouteResponse, error) {
+	out := new(RegisterRouteResponse)
+	err := c.cc.Invoke(ctx, "/proxy.ProxyService/RegisterRoute", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -93,6 +104,8 @@ func (c *proxyServiceClient) SendRequest(ctx context.Context, in *ProxyRequest, 
 type ProxyServiceServer interface {
 	// RegisterServer registers a new gRPC server
 	RegisterServer(context.Context, *RegisterServerRequest) (*RegisterServerResponse, error)
+	// RegisterRoute registers available routes/methods for a specific server
+	RegisterRoute(context.Context, *RegisterRouteRequest) (*RegisterRouteResponse, error)
 	// RemoveServer removes a registered gRPC server
 	RemoveServer(context.Context, *RemoveServerRequest) (*RemoveServerResponse, error)
 	// ListServers lists all registered gRPC servers
@@ -110,6 +123,9 @@ type UnimplementedProxyServiceServer struct {
 
 func (UnimplementedProxyServiceServer) RegisterServer(context.Context, *RegisterServerRequest) (*RegisterServerResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RegisterServer not implemented")
+}
+func (UnimplementedProxyServiceServer) RegisterRoute(context.Context, *RegisterRouteRequest) (*RegisterRouteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RegisterRoute not implemented")
 }
 func (UnimplementedProxyServiceServer) RemoveServer(context.Context, *RemoveServerRequest) (*RemoveServerResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveServer not implemented")
@@ -150,6 +166,24 @@ func _ProxyService_RegisterServer_Handler(srv interface{}, ctx context.Context, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ProxyServiceServer).RegisterServer(ctx, req.(*RegisterServerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxyService_RegisterRoute_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterRouteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxyServiceServer).RegisterRoute(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proxy.ProxyService/RegisterRoute",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxyServiceServer).RegisterRoute(ctx, req.(*RegisterRouteRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -236,6 +270,10 @@ var ProxyService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RegisterServer",
 			Handler:    _ProxyService_RegisterServer_Handler,
+		},
+		{
+			MethodName: "RegisterRoute",
+			Handler:    _ProxyService_RegisterRoute_Handler,
 		},
 		{
 			MethodName: "RemoveServer",

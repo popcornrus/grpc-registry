@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 # Install essential build tools
 RUN apk add --no-cache git
@@ -19,7 +19,32 @@ COPY . .
 # Build the application with optimizations
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-w -s" -o /app/grpc-registry ./cmd/server
 
-# Final stage
+# Development stage (for live reloading with air)
+FROM golang:1.23-alpine AS dev
+
+# Install essential tools and air
+RUN apk add --no-cache git && \
+    go install github.com/air-verse/air@latest
+
+# Set the working directory
+WORKDIR /app
+
+# Copy go.mod and go.sum
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy the source code
+COPY . .
+
+# Expose the gRPC port
+EXPOSE 50051
+
+# Run air for live reloading
+ENTRYPOINT ["air", "-c", ".air.toml"]
+
+# Final stage (production)
 FROM alpine:3.18
 
 # Add non-root user for security

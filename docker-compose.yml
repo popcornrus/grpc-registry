@@ -1,10 +1,9 @@
-version: '3.8'
-
 services:
   proxy-manager:
     build:
       context: .
       dockerfile: Dockerfile
+      target: dev
     image: grpc-registry:latest
     container_name: grpc-proxy-manager
     ports:
@@ -18,15 +17,6 @@ services:
       - grpc-network
     restart: unless-stopped
 
-  cms-tracker:
-    image: cms-tracker:latest
-    container_name: cms-tracker
-    environment:
-      - LOG_LEVEL=info
-    networks:
-      - grpc-network
-    restart: unless-stopped
-
 networks:
   grpc-network:
-    driver: bridge
+    external: true

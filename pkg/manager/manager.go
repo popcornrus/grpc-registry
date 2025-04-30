@@ -3,6 +3,7 @@ package manager
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,7 +18,6 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/popcornrus/grpc-registry/pkg/config"
-	proxypb "github.com/popcornrus/grpc-registry/proto/proxy"
 )
 
 // RouteInfo represents a gRPC route (service+method)
@@ -329,9 +329,9 @@ func (m *ProxyManager) AddServerRoute(serverID, service, method string) error {
 
 // ProtoServerInfo represents detailed information about a server (matches ServerInfo in proto)
 type ProtoServerInfo struct {
-	ServerID  string          // Server ID
-	Address   string          // Server address
-	Connected bool            // Connection status
+	ServerID  string            // Server ID
+	Address   string            // Server address
+	Connected bool              // Connection status
 	Routes    []*ProtoRouteInfo // Server routes/methods
 }
 
@@ -361,7 +361,7 @@ func (m *ProxyManager) GetServerDetails(serverID string) []*ProtoServerInfo {
 	}
 
 	// Otherwise, get details for all servers
-	result = make([]*proxypb.ServerInfo, 0, len(m.Connections))
+	result = make([]*ProtoServerInfo, 0, len(m.Connections))
 	for _, conn := range m.Connections {
 		info := m.createServerInfo(conn)
 		result = append(result, info)
@@ -412,31 +412,30 @@ func (m *ProxyManager) GetConnection(serverID string) (*ServerConnection, error)
 
 // SendRequest sends a request to a specific gRPC server and receives a response
 func (m *ProxyManager) SendRequest(serverID string, service, method string, request proto.Message) (proto.Message, error) {
-	// Get the connection
+	// Look up the server in the registry
 	conn, err := m.GetConnection(serverID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create a context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), conn.Options.Timeout)
+	// Set up the context with a timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Serialize the request message
-	reqAny, err := anypb.New(request)
-	if err != nil {
-		return nil, fmt.Errorf("failed to serialize request: %w", err)
+	// We'll create a response buffer when we make the call
+
+	// Ensure the service name includes a package
+	formattedService := service
+	if !strings.Contains(service, ".") {
+		// If no package prefix is provided, use "extension" as the default package
+		formattedService = "extension." + service
+		m.Logger.Infof("Added default package to service name: %s", formattedService)
 	}
 
-	// Create the full method string
-	fullMethod := fmt.Sprintf("/%s/%s", service, method)
+	// Create the full method string in gRPC format: /package.Service/Method
+	fullMethod := fmt.Sprintf("/%s/%s", formattedService, method)
 
-	// Create a raw request message
-	in, err := proto.Marshal(reqAny)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request: %w", err)
-	}
-
+	m.Logger.Infof("Using gRPC method: %s", fullMethod)
 	// Send the request and get the response
 	var resp proto.Message
 	var lastErr error
@@ -445,8 +444,9 @@ func (m *ProxyManager) SendRequest(serverID string, service, method string, requ
 		// Create a buffer to store the response
 		outBuffer := &anypb.Any{}
 
-		// Invoke only returns an error. The response is populated in the outBuffer parameter
-		lastErr = conn.Conn.Invoke(ctx, fullMethod, in, outBuffer)
+		// Invoke needs proto.Message, not raw bytes
+		// The request must be a proto.Message and the response will be populated in outBuffer
+		lastErr = conn.Conn.Invoke(ctx, fullMethod, request, outBuffer)
 		if lastErr == nil {
 			// Use the populated outBuffer as our response
 			resp = outBuffer
@@ -468,7 +468,7 @@ func (m *ProxyManager) SendRequest(serverID string, service, method string, requ
 	}
 
 	if lastErr != nil {
-		return nil, fmt.Errorf("failed to send request to server %s after %d attempts: %w",
+		return nil, fmt.Errorf("failed to send request to server %s after %d attempts: last err from Invoke: %w",
 			conn.Address, conn.Options.MaxRetries+1, lastErr)
 	}
 

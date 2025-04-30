@@ -2,12 +2,15 @@ syntax = "proto3";
 
 package proxy;
 
-option go_package = "github.com/popcornrus/grpc-registry/proto/proxy";
+option go_package = "./pb;pb";
 
 // ProxyService defines the gRPC service for the proxy manager
 service ProxyService {
   // RegisterServer registers a new gRPC server
   rpc RegisterServer(RegisterServerRequest) returns (RegisterServerResponse);
+  
+  // RegisterRoute registers available routes/methods for a specific server
+  rpc RegisterRoute(RegisterRouteRequest) returns (RegisterRouteResponse);
   
   // RemoveServer removes a registered gRPC server
   rpc RemoveServer(RemoveServerRequest) returns (RemoveServerResponse);
@@ -50,6 +53,27 @@ message RegisterServerResponse {
   
   // Error message (if any)
   string error = 2;
+}
+
+// RegisterRouteRequest represents a request to register available routes for a server
+message RegisterRouteRequest {
+  // ID of the server to register routes for
+  string server_id = 1;
+  
+  // List of routes to register
+  repeated RouteInfo routes = 2;
+}
+
+// RegisterRouteResponse represents a response to a RegisterRouteRequest
+message RegisterRouteResponse {
+  // Success status
+  bool success = 1;
+  
+  // Error message (if any)
+  string error = 2;
+  
+  // Number of routes registered
+  int32 route_count = 3;
 }
 
 // RemoveServerRequest represents a request to remove a registered gRPC server

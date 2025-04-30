@@ -4,7 +4,7 @@
 // - protoc             v6.30.2
 // source: extension.proto
 
-package extension
+package pb
 
 import (
 	context "context"
