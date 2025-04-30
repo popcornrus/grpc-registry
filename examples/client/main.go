@@ -11,15 +11,15 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/proto"
 
-	extensionpb "grpc-registry/proto/extension"
-	proxypb "grpc-registry/proto/proxy"
+	extensionpb "github.com/popcornrus/grpc-registry/proto/extension"
+	proxypb "github.com/popcornrus/grpc-registry/proto/proxy"
 )
 
 var (
 	proxyAddr     = flag.String("proxy", "localhost:50051", "Proxy manager address")
 	extensionID   = flag.String("extension-id", "rrweb-extension", "Extension ID")
 	extensionAddr = flag.String("extension-addr", "localhost:53000", "Extension server address")
-	action        = flag.String("action", "register", "Action to perform: register, track, get-data, or list")
+	action        = flag.String("action", "register", "Action to perform: register, track, get-data, list, or details")
 	userID        = flag.String("user-id", "user123", "User ID for tracking")
 )
 
@@ -68,6 +68,43 @@ func main() {
 		fmt.Println("Registered servers:")
 		for _, id := range resp.ServerIds {
 			fmt.Printf("- %s\n", id)
+		}
+		
+	case "details":
+		// Get server details
+		serverID := *extensionID
+		if flag.NArg() > 0 {
+			serverID = flag.Arg(0)
+		}
+		
+		// If no server ID specified, get details for all servers
+		detailsResp, err := proxyClient.GetServerDetails(ctx, &proxypb.ServerDetailsRequest{
+			ServerId: serverID,
+		})
+		if err != nil {
+			log.Fatalf("Failed to get server details: %v", err)
+		}
+		
+		if len(detailsResp.Servers) == 0 {
+			fmt.Println("No servers found")
+			return
+		}
+		
+		// Display server details
+		fmt.Println("Server Details:")
+		for _, server := range detailsResp.Servers {
+			fmt.Printf("\nServer ID: %s\n", server.ServerId)
+			fmt.Printf("  Address:   %s\n", server.Address)
+			fmt.Printf("  Connected: %v\n", server.Connected)
+			
+			if len(server.Routes) == 0 {
+				fmt.Println("  Routes:    None discovered yet")
+			} else {
+				fmt.Println("  Routes:    ")
+				for _, route := range server.Routes {
+					fmt.Printf("    - %s/%s\n", route.Service, route.Method)
+				}
+			}
 		}
 
 	case "track":

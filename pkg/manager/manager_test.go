@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"grpc-registry/pkg/config"
+	"github.com/popcornrus/grpc-registry/pkg/config"
 )
 
 func TestNew(t *testing.T) {

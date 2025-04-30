@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # gRPC Proxy Manager service
   proxy-manager:
     build:
       context: .
@@ -13,42 +12,21 @@ services:
     environment:
       - PROXY_PORT=50051
       - LOG_LEVEL=info
-      # Uncomment the following lines if using TLS
-      # - TLS_CERT=/app/certs/server.crt
-      # - TLS_KEY=/app/certs/server.key
       - DEFAULT_TIMEOUT_SECONDS=10
       - DEFAULT_MAX_RETRIES=3
     networks:
       - grpc-network
-    # Volume for TLS certificates (uncomment if using TLS)
-    # volumes:
-    #   - ./certs:/app/certs
-    restart: unless-stopped
-    
-  # Example extension server
-  extension-server:
-    build:
-      context: .
-      dockerfile: Dockerfile.extension
-    image: grpc-registry-extension:latest
-    container_name: extension-server
-    ports:
-      - "53000:53000"
-    environment:
-      - LOG_LEVEL=info
-    volumes:
-      - extension-data:/app/data
-    networks:
-      - grpc-network
-    depends_on:
-      - proxy-manager
     restart: unless-stopped
 
+  cms-tracker:
+    image: cms-tracker:latest
+    container_name: cms-tracker
+    environment:
+      - LOG_LEVEL=info
+    networks:
+      - grpc-network
+    restart: unless-stopped
 
 networks:
   grpc-network:
     driver: bridge
-
-volumes:
-  extension-data:
-    driver: local

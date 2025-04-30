@@ -13,9 +13,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 
-	"grpc-registry/pkg/manager"
-	proxypb "grpc-registry/proto/proxy"
+	"github.com/popcornrus/grpc-registry/pkg/manager"
+	proxypb "github.com/popcornrus/grpc-registry/proto/proxy"
 )
 
 // ProxyServer implements the ProxyService gRPC service
@@ -47,7 +48,7 @@ func (s *ProxyServer) RegisterServer(ctx context.Context, req *proxypb.RegisterS
 
 	// Set timeout if specified
 	if req.TimeoutSeconds > 0 {
-		opts = append(opts, manager.WithTimeout(time.Duration(req.TimeoutSeconds) * time.Second))
+		opts = append(opts, manager.WithTimeout(time.Duration(req.TimeoutSeconds)*time.Second))
 	}
 
 	// Set max retries if specified
@@ -101,20 +102,36 @@ func (s *ProxyServer) ListServers(ctx context.Context, req *proxypb.ListServersR
 	}, nil
 }
 
+// GetServerDetails implements the GetServerDetails RPC method
+func (s *ProxyServer) GetServerDetails(ctx context.Context, req *proxypb.ServerDetailsRequest) (*proxypb.ServerDetailsResponse, error) {
+	if req.ServerId == "" {
+		s.Logger.Info("Received GetServerDetails request for all servers")
+	} else {
+		s.Logger.Infof("Received GetServerDetails request for server %q", req.ServerId)
+	}
+
+	// Get server details from the manager
+	serverInfos := s.Manager.GetServerDetails(req.ServerId)
+
+	return &proxypb.ServerDetailsResponse{
+		Servers: serverInfos,
+	}, nil
+}
+
 // SendRequest implements the SendRequest RPC method
 func (s *ProxyServer) SendRequest(ctx context.Context, req *proxypb.ProxyRequest) (*proxypb.ProxyResponse, error) {
 	s.Logger.Infof("Received SendRequest request for server %q, service %q, method %q",
 		req.ServerId, req.Service, req.Method)
 
 	// Create a generic proto.Message from the request data
-	// In a real implementation, you'd need to know the expected request type
-	// For this example, we'll use a simple Any message to represent the request data
-	reqMsg := &proxypb.ProxyRequest{
-		Data: req.Data,
+	// We'll use anypb.Any to wrap the raw bytes
+	anyMsg := &anypb.Any{
+		TypeUrl: fmt.Sprintf("type.googleapis.com/%s.%s", req.Service, req.Method),
+		Value:   req.Data,
 	}
 
 	// Send the request to the target server
-	respMsg, err := s.Manager.SendRequest(req.ServerId, req.Service, req.Method, reqMsg)
+	respMsg, err := s.Manager.SendRequest(req.ServerId, req.Service, req.Method, anyMsg)
 	if err != nil {
 		s.Logger.Errorf("Failed to send request to server %q: %v", req.ServerId, err)
 		return &proxypb.ProxyResponse{

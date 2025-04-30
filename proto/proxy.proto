@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package proxy;
 
-option go_package = "grpc-registry/proto/proxy";
+option go_package = "github.com/popcornrus/grpc-registry/proto/proxy";
 
 // ProxyService defines the gRPC service for the proxy manager
 service ProxyService {
@@ -14,6 +14,9 @@ service ProxyService {
   
   // ListServers lists all registered gRPC servers
   rpc ListServers(ListServersRequest) returns (ListServersResponse);
+  
+  // GetServerDetails gets detailed information about registered servers and their routes
+  rpc GetServerDetails(ServerDetailsRequest) returns (ServerDetailsResponse);
   
   // SendRequest sends a request to a specific gRPC server
   rpc SendRequest(ProxyRequest) returns (ProxyResponse);
@@ -71,6 +74,42 @@ message ListServersRequest {}
 message ListServersResponse {
   // List of registered server IDs
   repeated string server_ids = 1;
+}
+
+// ServerDetailsRequest represents a request to get detailed information about servers
+message ServerDetailsRequest {
+  // Optional server ID to filter by (if empty, returns all servers)
+  string server_id = 1;
+}
+
+// ServerDetailsResponse represents detailed information about servers
+message ServerDetailsResponse {
+  // List of server details
+  repeated ServerInfo servers = 1;
+}
+
+// ServerInfo represents detailed information about a server
+message ServerInfo {
+  // Server ID
+  string server_id = 1;
+  
+  // Server address
+  string address = 2;
+  
+  // Connection status (true if connected)
+  bool connected = 3;
+  
+  // Server routes/methods
+  repeated RouteInfo routes = 4;
+}
+
+// RouteInfo represents information about a route/method
+message RouteInfo {
+  // Service name
+  string service = 1;
+  
+  // Method name
+  string method = 2;
 }
 
 // ProxyRequest represents a request to be forwarded to a specific gRPC server

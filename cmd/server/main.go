@@ -5,9 +5,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"grpc-registry/pkg/config"
-	"grpc-registry/pkg/manager"
-	"grpc-registry/pkg/server"
+	"github.com/popcornrus/grpc-registry/pkg/config"
+	"github.com/popcornrus/grpc-registry/pkg/manager"
+	"github.com/popcornrus/grpc-registry/pkg/server"
 )
 
 func main() {

@@ -16,8 +16,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 
-	extensionpb "grpc-registry/proto/extension"
-	proxypb "grpc-registry/proto/proxy"
+	extensionpb "github.com/popcornrus/grpc-registry/proto/extension"
+	proxypb "github.com/popcornrus/grpc-registry/proto/proxy"
 )
 
 var (
@@ -210,23 +210,23 @@ func main() {
 	if *autoRegister {
 		logger.Infof("Attempting to auto-register with proxy manager at %s", *proxyAddr)
 		logger.Infof("Registration address: %s", registerAddr)
-		
+
 		// Start a goroutine to handle registration
 		go func() {
 			// Add a small delay to ensure proxy manager is ready
 			time.Sleep(5 * time.Second)
-			
+
 			// Attempt registration with retry
 			maxRetries := 5
 			retryInterval := 5 * time.Second
-			
+
 			for attempt := 1; attempt <= maxRetries; attempt++ {
 				err := registerWithProxyManager(logger, registerAddr)
 				if err == nil {
 					logger.Infof("Successfully registered with proxy manager (attempt %d/%d)", attempt, maxRetries)
 					break
 				}
-				
+
 				logger.Warnf("Registration attempt %d/%d failed: %v", attempt, maxRetries, err)
 				if attempt < maxRetries {
 					logger.Infof("Retrying in %v...", retryInterval)
